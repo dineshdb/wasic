@@ -80,7 +80,7 @@ impl ServerManager {
             .iter()
             .map(|(name, component_config)| {
                 let name = name.clone();
-                let component_config = component_config.clone();
+                let mut component_config = component_config.clone();
                 let oci_manager = oci_manager.clone();
                 let engine = engine.clone();
 
@@ -92,11 +92,11 @@ impl ServerManager {
                             component_config.oci.as_deref(),
                         )
                         .await?;
-
+                    component_config.path = Some(resolved_path.to_string_lossy().to_string());
                     let wasm_component = WasmComponent::new_with_engine(
                         name.clone(),
-                        &resolved_path,
                         engine.clone(),
+                        component_config,
                     )?;
                     Ok::<(String, WasmComponent), crate::error::WasiMcpError>((
                         name,

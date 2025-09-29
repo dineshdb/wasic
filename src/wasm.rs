@@ -325,16 +325,22 @@ pub struct WasmComponent {
     pub name: String,
     pub engine: Arc<Engine>,
     pub component: Component,
+    pub config: crate::config::ComponentConfig, // Store component config
     pub interfaces: HashMap<String, InterfaceInfo>, // Map of interface name to interface info
     pub functions: HashMap<String, FunctionInfo>, // Map of function name to function info for standalone functions
 }
 
 impl WasmComponent {
     /// Create a new WASM component from file path with shared engine (optimized)
-    #[instrument(level = "debug", skip(engine, wasm_path), fields(name, duration_ms))]
-    pub fn new_with_engine(name: String, wasm_path: &PathBuf, engine: Arc<Engine>) -> Result<Self> {
+    #[instrument(level = "debug", skip(engine), fields(name, duration_ms))]
+    pub fn new_with_engine(
+        name: String,
+        engine: Arc<Engine>,
+        component_config: crate::config::ComponentConfig,
+    ) -> Result<Self> {
         let start_time = std::time::Instant::now();
-        let component = Component::from_file(&engine, wasm_path)
+        let wasm_path = PathBuf::from(component_config.path.as_deref().expect("path should be provided"));
+        let component = Component::from_file(&engine, &wasm_path)
             .map_err(crate::error::WasiMcpError::Component)?;
         tracing::Span::current().record("duration_ms", start_time.elapsed().as_micros());
         // Extract component info with optimized processing
@@ -343,6 +349,7 @@ impl WasmComponent {
             name,
             engine,
             component,
+            config: component_config,
             interfaces,
             functions,
         })
